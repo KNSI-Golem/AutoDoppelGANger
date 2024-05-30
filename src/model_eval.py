@@ -14,7 +14,7 @@ class ModelEval:
         self.inception_model.eval()
 
     def compute_inception_score(self, generated_images):
-        preprocessed_images = self.preprocess_data(generated_images)
+        preprocessed_images = self.preprocess_data(np.array(generated_images))
         conditional_probs = self.calculate_conditional_probs(preprocessed_images)
         inception_score = self.calculate_inception_score(conditional_probs)
         return inception_score
