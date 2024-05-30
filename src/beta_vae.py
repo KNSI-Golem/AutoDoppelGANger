@@ -2,15 +2,14 @@ import torch.nn as nn
 import torch
 
 class BetaVAE(nn.Module):
-    def __init__(self, in_channels, latent_dim, hidden_dims, beta, device):
+    def __init__(self, in_channels, latent_dim, hidden_dims, device):
         super(BetaVAE, self).__init__()
         self.latent_dim = latent_dim
         self.hidden_dims = hidden_dims
-        self.beta = beta
         self.encoder = nn.Sequential(
             *self.build_encoder(in_channels)
         )
-        self.mu, self.sigma = self.build_distr_params(self)
+        self.mu, self.log_var = self.build_distr_params(self)
         self.decoder_input = self.build_decoder_input(self)
         self.decoder = nn.Sequential(
             *self.build_decoder(),
@@ -19,20 +18,20 @@ class BetaVAE(nn.Module):
             self.cuda()
 
     def forward(self, x):
-        mu, sigma = self.encode(x)
-        z = self.reparametrize(mu, sigma)
+        mu, log_var = self.encode(x)
+        z = self.reparametrize(mu, log_var)
         x_reconstructed = self.decode(z)
-        return x_reconstructed, mu, sigma
+        return x_reconstructed, mu, log_var
 
     def encode(self, x):
         output = self.encoder(x)
         output = torch.flatten(output, start_dim=1)
         mu = self.mu(output)
-        sigma = self.sigma(output)
-        return mu, sigma
+        log_var = self.log_var(output)
+        return mu, log_var
 
-    def reparametrize(self, mu, sigma):
-        std = torch.exp(0.5 * sigma)
+    def reparametrize(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
         epsilon = torch.randn_like(std)
         return mu + epsilon * std
 
@@ -96,4 +95,30 @@ class BetaVAE(nn.Module):
                         kernel_size= 3, padding= 1),
             nn.Tanh()
         )
+
+    def initilize_weights(self):
+        self.initialize_decoder_weights()
+        self.initialize_encoder_weights()
+
+    def initialize_encoder_weights(self):
+        nn.init.xavier_normal_(self.mu.weight)
+        nn.init.constant_(self.mu.bias, 0)
+        nn.init.xavier_normal_(self.log_var.weight)
+        nn.init.constant_(self.log_var.bias, 0)
+        for m in self.encoder.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def initialize_decoder_weights(self):
+        nn.init.xavier_normal_(self.decoder_input.weight)
+        nn.init.constant_(self.decoder_input.bias, 0)
+        for m in self.decoder.modules():
+            if isinstance(m, nn.ConvTranspose2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
