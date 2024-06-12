@@ -9,8 +9,8 @@ class BetaVAE(nn.Module):
         self.encoder = nn.Sequential(
             *self.build_encoder(in_channels)
         )
-        self.mu, self.log_var = self.build_distr_params(self)
-        self.decoder_input = self.build_decoder_input(self)
+        self.mu, self.log_var = self.build_distr_params()
+        self.decoder_input = self.build_decoder_input()
         self.decoder = nn.Sequential(
             *self.build_decoder(),
         )
@@ -65,13 +65,12 @@ class BetaVAE(nn.Module):
 
     def build_decoder(self):
         blocks = []
-        self.hidden_dims.reverse()
-        in_channels = self.hidden_dims[0]
-        self.hidden_dims.pop(0)
-        for h_dim in self.hidden_dims:
-            blocks.append(self.decoder_block(h_dim, in_channels))
-            in_channels = h_dim
-        blocks.append(self.decoder_final(self))
+        hidden_dims = self.hidden_dims[::-1]
+        for i in range(1, len(hidden_dims)):
+            in_channels = hidden_dims[i - 1]
+            out_channels = hidden_dims[i]
+            blocks.append(self.decoder_block(in_channels, out_channels))
+        blocks.append(self.decoder_final(out_channels))
         return blocks
 
     def decoder_block(self, in_channels, out_channels):
@@ -82,21 +81,16 @@ class BetaVAE(nn.Module):
             nn.LeakyReLU()
         )
 
-    def decoder_final(self):
+    def decoder_final(self, in_channels):
         return nn.Sequential(
-            nn.ConvTranspose2d(self.hidden_dims[-1], self.hidden_dims[-1],
-                           kernel_size=3,
-                           stride=2,
-                           padding=1,
-                           output_padding=1),
-            nn.BatchNorm2d(self.hidden_dims[-1]),
+            nn.ConvTranspose2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(in_channels),
             nn.LeakyReLU(),
-            nn.Conv2d(self.hidden_dims[-1], out_channels= 3,
-                        kernel_size= 3, padding= 1),
-            nn.Tanh()
+            nn.Conv2d(in_channels, out_channels=3, kernel_size=3, padding=1),
+            nn.Sigmoid()
         )
 
-    def initilize_weights(self):
+    def initialize_weights(self):
         self.initialize_decoder_weights()
         self.initialize_encoder_weights()
 

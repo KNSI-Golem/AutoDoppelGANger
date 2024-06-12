@@ -1,5 +1,6 @@
 from .data_preprocessor import DataPreprocessor
 from .car_cutter import CarCutter
+from .train import BetaVAETrainer
 from nuimages import NuImages
 from .gan import GAN
 from .model_eval import ModelEval
@@ -13,16 +14,19 @@ class AutoDoppelGANgerShell:
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = GAN(64, 64, 3, 100, device, "../logs")
+        self.model_vae = BetaVAETrainer(3, 128, [32, 64, 128, 256, 512], device, "../logs")
         self.model_eval = ModelEval(32, device)
 
     def help(self):
         print("Available commands:")
         print("lddst - Load dataset (Usage: lddst <filepath>)")
         print("gensam - Generate Samples (Usage: gensam <num_samples> <num_rows> <num_columns>)")
-        print("ldwghts - Load model weights (Usage: ldwghts <path to discriminator weights> <path to generator weights>)")
-        print("train - Start training the model (Usage: train <path to json file>)")
+        print("ldwghtsgan - Load model weights (Usage: ldwghtsgan <path to discriminator weights> <path to generator weights>)")
+        print("ldwghtsvae - Load model weights (Usage: ldwghtsvae <path to weights>)")
+        print("traingan - Start training the GAN model (Usage: traingan <path to json file>)")
+        print("trainbvae - Start training the Beta-VAE model (Usage: trainbvae <path to json file>)")
         print("incsc - Calculate inception score of the model")
-        print("fid - Calculate FID of the model")
+        # print("fid - Calculate FID of the model")
         print("exit - Exit the shell")
 
     def cut_nu_images(self, dataroot, out_path, version, min_size_x, min_size_y):
@@ -53,7 +57,7 @@ class AutoDoppelGANgerShell:
         except OSError as e:
             print(f"OS error: {e}")
 
-    def train(self, json_file):
+    def train_gan(self, json_file):
         print("Training model...")
         try:
             with open(json_file, 'r') as file_handle:
@@ -83,13 +87,46 @@ class AutoDoppelGANgerShell:
             print(f"An unexpected error occurred: {e}")
         print("Done.")
 
-    def generate_samples(self, num_samples, num_rows, num_cols):
+    def train_bvae(self, json_file):
+        print("Training model...")
+        try:
+            with open(json_file, 'r') as file_handle:
+                training_setup = json.load(file_handle)
+
+            if not self.dataset:
+                print("You must load dataset with 'lddst <filepath>' before training model.")
+                return
+            self.model_vae.train(self.dataset, training_setup["num_epochs"], training_setup["batch_size"], training_setup["beta"],
+                            training_setup["learning_rate"])
+            if training_setup["save_weights"]:
+                self.model_vae.save_model_weights(
+                        "models/checkpoints/bvae.pth")
+        except FileNotFoundError as e:
+            print(f"Configuration file not found: {e}")
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON from configuration file: {e}")
+        except KeyError as e:
+            print(f"Missing key in configuration: {e}")
+        except AttributeError as e:
+            print(f"Attribute error: {e}")
+        except TypeError as e:
+            print(f"Type error: {e}")
+        except ValueError as e:
+            print(f"Value error: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+        print("Done.")
+
+    def generate_samples(self, type, num_samples, num_rows, num_cols):
         print("Displaying images...")
         try:
             num_samples = int(num_samples)
             num_rows = int(num_rows)
             num_cols = int(num_cols)
-            images = self.model.generate_samples(num_samples)
+            if type =="gan":
+                images = self.model.generate_samples(num_samples)
+            else:
+                images = self.model_vae.generate_samples(num_samples)
             _, axes = plt.subplots(num_rows, num_cols, figsize=(10, 10))
             for i, ax in enumerate(axes.flat):
                 ax.imshow(images[i].permute(1, 2, 0).clamp(0, 1))
@@ -98,11 +135,21 @@ class AutoDoppelGANgerShell:
             plt.show()
             print("Done...")
         except ValueError:
-            print("All arguments must be integers: <num_samples> <num_rows> <num_columns>")
+            print("All arguments must be integers: <type(gan/bvae)> <num_samples> <num_rows> <num_columns>")
 
-    def load_weights(self, path_dsc, path_gen):
+    def load_weights_gan(self, path_dsc, path_gen):
         try:
             self.model.load_model_weights(path_dsc, path_gen)
+        except FileNotFoundError as e:
+            print(f"File not found: {e}")
+        except (torch.serialization.pickle.UnpicklingError, EOFError) as e:
+            print(f"Unpickling error: {e}")
+        except RuntimeError as e:
+            print(f"Runtime error: {e}")
+
+    def load_weights_vae(self, path):
+        try:
+            self.model_vae.load_model_weights(path)
         except FileNotFoundError as e:
             print(f"File not found: {e}")
         except (torch.serialization.pickle.UnpicklingError, EOFError) as e:
@@ -139,23 +186,33 @@ class AutoDoppelGANgerShell:
                         self.load_dataset(parts[1])
                     except IndexError:
                         print("Usage: lddst <filepath>")
-                elif parts[0] == 'train':
+                elif parts[0] == 'traingan':
                     try:
-                        self.train(parts[1])
+                        self.train_gan(parts[1])
                     except IndexError:
-                        print("Usage: train <path to json file>")
-                elif parts[0] == 'ldwghts':
+                        print("Usage: traingan <path to json file>")
+                elif parts[0] == 'trainbvae':
                     try:
-                        self.load_weights(parts[1], parts[2])
+                        self.train_bvae(parts[1])
                     except IndexError:
-                        print("Usage: ldwghts <path to discriminator weights> <path to generator weights>")
+                        print("Usage: trainbvae <path to json file>")
+                elif parts[0] == 'ldwghtsgan':
+                    try:
+                        self.load_weights_gan(parts[1], parts[2])
+                    except IndexError:
+                        print("Usage: ldwghtsgan <path to discriminator weights> <path to generator weights>")
+                elif parts[0] == 'ldwghtsvae':
+                    try:
+                        self.load_weights_vae(parts[1])
+                    except IndexError:
+                        print("Usage: ldwghtsvae <path to weights>")
                 elif parts[0] == 'gensam':
                     try:
-                        self.generate_samples(parts[1], parts[2], parts[3])
+                        self.generate_samples(parts[1], parts[2], parts[3], parts[4])
                     except IndexError:
                         print("Usage: gensam <num_samples> <num_rows> <num_columns>")
-                elif parts[0] == 'fid':
-                    self.display_FID()
+                # elif parts[0] == 'fid':
+                #    self.display_FID()
                 elif parts[0] == 'incsc':
                     self.display_inception_score()
                 elif parts[0] == 'exit':
