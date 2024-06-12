@@ -103,6 +103,8 @@ class GAN:
             noise = torch.randn(num_samples, self.noise_dim, 1, 1).to(self.device)
         with torch.no_grad():
             generated_samples = self.generator.forward(noise)
+        generated_samples = (generated_samples + 1) / 2
+        print(generated_samples)
         return generated_samples.cpu()
 
     def setup_tensorboard(self):
@@ -116,8 +118,8 @@ class GAN:
         torch.save(self.generator.state_dict(), path_gen)
 
     def load_model_weights(self, path_dsc, path_gen):
-        self.discriminator.load_state_dict(torch.load(path_dsc))
-        self.generator.load_state_dict(torch.load(path_gen))
+        self.discriminator.load_state_dict(torch.load(path_dsc, map_location=torch.device("cpu")))
+        self.generator.load_state_dict(torch.load(path_gen, map_location=torch.device("cpu")))
 
     # TODO make visualization into separate class
     def plot_grid(self, images, num_rows, num_cols, figsize=(10, 10), index=0):

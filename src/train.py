@@ -52,6 +52,7 @@ class BetaVAETrainer:
             z = torch.randn(num_samples, self.latent_dim).to(self.device)
         with torch.no_grad():
             generated_samples = self.model.decode(z)
+        print(generated_samples)
         self.model.train()
         return generated_samples.cpu()
 
@@ -65,4 +66,4 @@ class BetaVAETrainer:
         torch.save(self.model.state_dict(), path)
 
     def load_model_weights(self, path):
-        self.model.load_state_dict(torch.load(path))
+        self.model.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
