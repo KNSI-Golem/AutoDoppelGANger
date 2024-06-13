@@ -135,7 +135,27 @@ class AutoDoppelGANgerShell:
             plt.show()
             print("Done...")
         except ValueError:
-            print("All arguments must be integers: <type(gan/bvae)> <num_samples> <num_rows> <num_columns>")
+            print("Pass correct arguments: <type(gan/bvae)> <num_samples> <num_rows> <num_columns>")
+
+    def generate_disentangled_samples(self, num_samples, num_rows, num_columns):
+        print("Displaying images...")
+        try:
+            num_samples = int(num_samples)
+            num_rows = int(num_rows)
+            num_cols = int(num_columns)
+            base_vector = torch.randn(num_samples, 128)
+            images = self.model_vae.generate_disentangled_samples(base_vector)
+            _, axes = plt.subplots(num_rows, num_cols, figsize=(10, 10))
+            for i, ax_row in enumerate(axes):
+                for j, ax in enumerate(ax_row):
+                    ax.imshow(images[i*10+j])
+                    ax.axis('off')
+            plt.subplots_adjust(wspace=0.1, hspace=0.1)
+            plt.show()
+        except ValueError:
+            print("Pass correct arguments: <num_samples> <num_rows> <num_columns>")
+        except TypeError:
+            print("Rows and columns need to be bigger than one")
 
     def load_weights_gan(self, path_dsc, path_gen):
         try:
@@ -146,6 +166,8 @@ class AutoDoppelGANgerShell:
             print(f"Unpickling error: {e}")
         except RuntimeError as e:
             print(f"Runtime error: {e}")
+        except IsADirectoryError:
+            print(f"Weight must be file: {e}")
 
     def load_weights_vae(self, path):
         try:
@@ -156,6 +178,8 @@ class AutoDoppelGANgerShell:
             print(f"Unpickling error: {e}")
         except RuntimeError as e:
             print(f"Runtime error: {e}")
+        except IsADirectoryError:
+            print(f"Weight must be file: {e}")
 
     def display_inception_score(self):
         print("Calculating Inception Score...")
@@ -209,6 +233,11 @@ class AutoDoppelGANgerShell:
                 elif parts[0] == 'gensam':
                     try:
                         self.generate_samples(parts[1], parts[2], parts[3], parts[4])
+                    except IndexError:
+                        print("Usage: gensam <type> <num_samples> <num_rows> <num_columns>")
+                elif parts[0] == 'gendis':
+                    try:
+                        self.generate_disentangled_samples(parts[1], parts[2], parts[3])
                     except IndexError:
                         print("Usage: gensam <num_samples> <num_rows> <num_columns>")
                 # elif parts[0] == 'fid':

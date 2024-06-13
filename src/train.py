@@ -1,8 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-import matplotlib.pyplot as plt
-import torchvision
+import numpy as np
 from src.beta_vae import BetaVAE
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -11,7 +10,6 @@ from torch.utils.tensorboard import SummaryWriter
 class BetaVAETrainer:
     def __init__(self, in_channels, latent_dim, hidden_dims, device, log_dir):
         self.model = BetaVAE(in_channels, latent_dim, hidden_dims, device)
-        self.latent_dim = latent_dim
         self.device = device
         self.log_dir = log_dir
 
@@ -49,12 +47,28 @@ class BetaVAETrainer:
     def generate_samples(self, num_samples, z=None):
         self.model.eval()
         if z is None:
-            z = torch.randn(num_samples, self.latent_dim).to(self.device)
+            z = torch.randn(num_samples, self.model.latent_dim).to(self.device)
         with torch.no_grad():
             generated_samples = self.model.decode(z)
-        print(generated_samples)
         self.model.train()
         return generated_samples.cpu()
+
+    def generate_disentangled_samples(self, base_vector, num_variations=10, dim_range=(-3, 3)):
+        self.model.eval()
+        values = np.linspace(dim_range[0], dim_range[1], num_variations)
+        dims_to_vary = np.random.choice(self.model.latent_dim, 10, replace=False)
+        generated_images = []
+        for dim in dims_to_vary:
+            for val in values:
+                varied_vector = base_vector.clone()
+                varied_vector[:, dim] = val
+                with torch.no_grad():
+                    imgs = self.model.decode(varied_vector)
+                for img in imgs:
+                    img = img.cpu().numpy().transpose(1, 2, 0)  # Correctly transpose each image
+                    generated_images.append(img)
+        self.model.train()
+        return generated_images
 
     def print_training_stats(self, num_epochs, epoch, batch_idx, dataset_size, loss, reconstruction_loss, kl_divergence):
         print(
