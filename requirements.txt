@@ -3,7 +3,7 @@ torch
 torchvision
 torchaudio
 scipy
-numpy==1.26.2
-pandas==2.2.1
+numpy
+pandas
 nuscenes-devkit==1.1.11
-matplotlib==3.5.3
+matplotlib
