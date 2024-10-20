@@ -12,29 +12,20 @@ class DataPreprocessor:
     def load_dataset(self, src_dir):
         transform = transforms.Compose(
             [
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomRotation(degrees=20),
+                transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
+                transforms.RandomGrayscale(p=0.1),
+                transforms.RandomPerspective(distortion_scale=0.2, p=0.5),
+                transforms.ColorJitter(brightness=0.2,
+                           contrast=0.2,
+                           saturation=0.2,
+                           hue=0.1),
                 transforms.Resize((self.target_width, self.target_height)),
                 transforms.ToTensor(),
-                transforms.Normalize([0.5 for _ in range(self.channels)],
-                                     [0.5 for _ in range(self.channels)]),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225]),
             ]
         )
         dataset = datasets.ImageFolder(root=src_dir, transform=transform)
         return dataset
-
-    def resize_dataset(self, src_dir):
-        for filename in os.listdir(src_dir):
-            self.resize_image(src_dir+"/"+filename)
-
-    def resize_image(self, image_path):
-        image = cv2.imread(image_path)
-        if self.is_too_small(image):
-            resized_img = cv2.resize(image, (self.target_width, self.target_height),
-                                     interpolation=cv2.INTER_LINEAR)
-        else:
-            resized_img = cv2.resize(image, (self.target_width, self.target_height),
-                                     interpolation=cv2.INTER_AREA)
-        cv2.imwrite(image_path, resized_img)
-
-    def is_too_small(self, image):
-        height, width, channels = image.shape
-        return height < self.target_height and width < self.target_width
