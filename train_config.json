@@ -5,5 +5,7 @@
     "save_weights": true,
     "beta1": 0.5,
     "beta2": 0.999,
-    "time_limit": 1
+    "time_limit": 1,
+    "discriminator_weights_filename": "discriminator_2010",
+    "generator_weight_filename": "generator_2010"
 }

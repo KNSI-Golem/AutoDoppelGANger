@@ -69,8 +69,9 @@ class AutoDoppelGANgerShell:
             self.model.train(self.dataset, training_setup["num_epochs"], training_setup["batch_size"], training_setup["learning_rate"],
                             training_setup["beta1"], training_setup["beta2"], training_setup["time_limit"])
             if training_setup["save_weights"]:
-                self.model.save_models_weigths(
-                        "../models/checkpoints/discriminator.pth", "../models/checkpoints/generator.pth")
+                discriminator = "models/checkpoints/" + training_setup["discriminator_weights_filename"] +".pth"
+                generator = "models/checkpoints/" + training_setup["generator_weights_filename"] +".pth"
+                self.model.save_models_weigths(discriminator, generator)
         except FileNotFoundError as e:
             print(f"Configuration file not found: {e}")
         except json.JSONDecodeError as e:
@@ -245,7 +246,7 @@ class AutoDoppelGANgerShell:
                 elif parts[0] == 'incsc':
                     self.display_inception_score()
                 elif parts[0] == 'exit':
-                    running = self.exit()
+                    break
                 else:
                     print("Unknown command. Type 'help' for help.")
             else:
