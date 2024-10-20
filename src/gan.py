@@ -31,8 +31,8 @@ class GAN:
 
         start_time = time.time()
         epoch = 0
-        while ((time.time() - start_time)/60 < time_limit):
-        # for epoch in range(num_epochs):
+        # while ((time.time() - start_time)/60 < time_limit):
+        for epoch in range(num_epochs):
             for batch_idx, (real, _) in enumerate(self.loaded_data):
                 real = real.to(self.device)
                 fake = self.generate_fake_input(batch_size)
