@@ -104,7 +104,6 @@ class GAN:
         with torch.no_grad():
             generated_samples = self.generator.forward(noise)
         generated_samples = (generated_samples + 1) / 2
-        print(generated_samples)
         return generated_samples.cpu()
 
     def setup_tensorboard(self):

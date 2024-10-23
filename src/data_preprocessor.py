@@ -23,8 +23,8 @@ class DataPreprocessor:
                            hue=0.1),
                 transforms.Resize((self.target_width, self.target_height)),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225]),
+                transforms.Normalize([0.5 for _ in range(self.channels)],
+                                     [0.5 for _ in range(self.channels)]),
             ]
         )
         dataset = datasets.ImageFolder(root=src_dir, transform=transform)

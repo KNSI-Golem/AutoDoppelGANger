@@ -2,6 +2,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import numpy as np
+import torchvision
 from src.beta_vae import BetaVAE
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -30,6 +31,7 @@ class BetaVAETrainer:
                 if batch_idx % 100 == 0:
                     self.print_training_stats(num_epochs, epoch, batch_idx,
                                               len(self.loaded_data), total_loss, reconstruction_loss, kl_divergence.mean())
+
     def load_data(self, dataset, batch_size):
         self.loaded_data = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
@@ -76,8 +78,27 @@ class BetaVAETrainer:
                    Loss: {loss:.6f}, Reconstruction Loss: {reconstruction_loss:.6f}, KL Divergence: {kl_divergence:.6f}"
              )
 
+    def setup_tensorboard(self):
+        self.writer_real = SummaryWriter(self.log_dir+"/real")
+        self.writer_fake = SummaryWriter(self.log_dir+"/fake")
+        fixed_noise = torch.randn(32, self.noise_dim, 1, 1).to(self.device)
+        return fixed_noise
+
     def save_model_weights(self, path):
         torch.save(self.model.state_dict(), path)
 
     def load_model_weights(self, path):
         self.model.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
+
+    def tensor_board_grid(self, writer_real, writer_fake, real, step):
+        self.model.eval()
+        z = torch.randn(32, self.model.latent_dim).to(self.device)
+        with torch.no_grad():
+            generated_samples = self.model.decode(z)
+        self.model.train()
+        img_grid_real = torchvision.utils.make_grid(real[:32], normalize=True)
+        img_grid_fake = torchvision.utils.make_grid(generated_samples[:32], normalize=True)
+
+        writer_real.add_image("Real", img_grid_real, global_step=step)
+        writer_fake.add_image("Fake", img_grid_fake, global_step=step)
+
