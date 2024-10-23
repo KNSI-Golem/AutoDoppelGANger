@@ -13,14 +13,14 @@ class AutoDoppelGANgerShell:
         print("Welcome to AutoDoppelGANger. Type 'help' to list commands.")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = GAN(64, 64, 3, 100, device, "../logs")
-        self.model_vae = BetaVAETrainer(3, 128, [32, 64, 128, 256, 512], device, "../logs")
+        self.model = GAN(64, 64, 3, 100, device, "logs")
+        self.model_vae = BetaVAETrainer(3, 128, [32, 64, 128, 256, 512], device, "logs")
         self.model_eval = ModelEval(32, device)
 
     def help(self):
         print("Available commands:")
         print("lddst - Load dataset (Usage: lddst <filepath>)")
-        print("gensam - Generate Samples (Usage: gensam <num_samples> <num_rows> <num_columns>)")
+        print("gensam - Generate Samples (Usage: gensam <type> <num_samples> <num_rows> <num_columns>)")
         print("ldwghtsgan - Load model weights (Usage: ldwghtsgan <path to discriminator weights> <path to generator weights>)")
         print("ldwghtsvae - Load model weights (Usage: ldwghtsvae <path to weights>)")
         print("traingan - Start training the GAN model (Usage: traingan <path to json file>)")
@@ -161,6 +161,7 @@ class AutoDoppelGANgerShell:
     def load_weights_gan(self, path_dsc, path_gen):
         try:
             self.model.load_model_weights(path_dsc, path_gen)
+            print("Done")
         except FileNotFoundError as e:
             print(f"File not found: {e}")
         except (torch.serialization.pickle.UnpicklingError, EOFError) as e:
