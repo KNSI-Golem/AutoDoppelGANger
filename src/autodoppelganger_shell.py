@@ -99,8 +99,6 @@ class AutoDoppelGANgerShell:
                 return
             self.model_vae.train(self.dataset, training_setup["num_epochs"], training_setup["batch_size"], training_setup["beta"],
                             training_setup["learning_rate"], training_setup["weights_filename"])
-            if training_setup["save_weights"]:
-                self.model_vae.save_model_weights(training_setup["weights_filename"])
         except FileNotFoundError as e:
             print(f"Configuration file not found: {e}")
         except json.JSONDecodeError as e:
@@ -201,54 +199,58 @@ class AutoDoppelGANgerShell:
     def run(self):
         running = True
         while running:
-            user_input = input("AutoDoppelGANger> ").strip()
-            if user_input:
-                parts = user_input.split()
-                if parts[0] == 'help':
-                    self.help()
-                elif parts[0] == 'lddst':
-                    try:
-                        self.load_dataset(parts[1])
-                    except IndexError:
-                        print("Usage: lddst <filepath>")
-                elif parts[0] == 'traingan':
-                    try:
-                        self.train_gan(parts[1])
-                    except IndexError:
-                        print("Usage: traingan <path to json file>")
-                elif parts[0] == 'trainbvae':
-                    try:
-                        self.train_bvae(parts[1])
-                    except IndexError:
-                        print("Usage: trainbvae <path to json file>")
-                elif parts[0] == 'ldwghtsgan':
-                    try:
-                        self.load_weights_gan(parts[1], parts[2])
-                    except IndexError:
-                        print("Usage: ldwghtsgan <path to discriminator weights> <path to generator weights>")
-                elif parts[0] == 'ldwghtsvae':
-                    try:
-                        self.load_weights_vae(parts[1])
-                    except IndexError:
-                        print("Usage: ldwghtsvae <path to weights>")
-                elif parts[0] == 'gensam':
-                    try:
-                        self.generate_samples(parts[1], parts[2], parts[3], parts[4])
-                    except IndexError:
-                        print("Usage: gensam <type> <num_samples> <num_rows> <num_columns>")
-                elif parts[0] == 'gendis':
-                    try:
-                        self.generate_disentangled_samples(parts[1], parts[2], parts[3])
-                    except IndexError:
-                        print("Usage: gensam <num_samples> <num_rows> <num_columns>")
-                # elif parts[0] == 'fid':
-                #    self.display_FID()
-                elif parts[0] == 'incsc':
-                    self.display_inception_score()
-                elif parts[0] == 'exit':
-                    break
+            try:
+                user_input = input("AutoDoppelGANger> ").strip()
+                if user_input:
+                    parts = user_input.split()
+                    if parts[0] == 'help':
+                        self.help()
+                    elif parts[0] == 'lddst':
+                        try:
+                            self.load_dataset(parts[1])
+                        except IndexError:
+                            print("Usage: lddst <filepath>")
+                    elif parts[0] == 'traingan':
+                        try:
+                            self.train_gan(parts[1])
+                        except IndexError:
+                            print("Usage: traingan <path to json file>")
+                    elif parts[0] == 'trainbvae':
+                        try:
+                            self.train_bvae(parts[1])
+                        except IndexError:
+                            print("Usage: trainbvae <path to json file>")
+                    elif parts[0] == 'ldwghtsgan':
+                        try:
+                            self.load_weights_gan(parts[1], parts[2])
+                        except IndexError:
+                            print("Usage: ldwghtsgan <path to discriminator weights> <path to generator weights>")
+                    elif parts[0] == 'ldwghtsvae':
+                        try:
+                            self.load_weights_vae(parts[1])
+                        except IndexError:
+                            print("Usage: ldwghtsvae <path to weights>")
+                    elif parts[0] == 'gensam':
+                        try:
+                            self.generate_samples(parts[1], parts[2], parts[3], parts[4])
+                        except IndexError:
+                            print("Usage: gensam <type> <num_samples> <num_rows> <num_columns>")
+                    elif parts[0] == 'gendis':
+                        try:
+                            self.generate_disentangled_samples(parts[1], parts[2], parts[3])
+                        except IndexError:
+                            print("Usage: gensam <num_samples> <num_rows> <num_columns>")
+                    # elif parts[0] == 'fid':
+                    #    self.display_FID()
+                    elif parts[0] == 'incsc':
+                        self.display_inception_score()
+                    elif parts[0] == 'exit':
+                        break
+                    else:
+                        print("Unknown command. Type 'help' for help.")
                 else:
-                    print("Unknown command. Type 'help' for help.")
-            else:
-                continue
+                    continue
+            except KeyboardInterrupt:
+                print("  Program terminated by user.")
+                break
 
