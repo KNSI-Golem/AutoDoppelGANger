@@ -14,7 +14,7 @@ class AutoDoppelGANgerShell:
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = GAN(64, 64, 3, 100, device, "logs")
-        self.model_vae = BetaVAETrainer(3, 128, [32, 64, 128, 256, 512], device, "logs")
+        self.model_vae = BetaVAETrainer(3, 128, [32, 64, 128, 256, 512], device, "logs", "models/checkpoints/")
         self.model_eval = ModelEval(32, device)
 
     def help(self):
@@ -22,7 +22,7 @@ class AutoDoppelGANgerShell:
         print("lddst - Load dataset (Usage: lddst <filepath>)")
         print("gensam - Generate Samples (Usage: gensam <type> <num_samples> <num_rows> <num_columns>)")
         print("ldwghtsgan - Load model weights (Usage: ldwghtsgan <path to discriminator weights> <path to generator weights>)")
-        print("ldwghtsvae - Load model weights (Usage: ldwghtsvae <path to weights>)")
+        print("ldwghtsvae - Load model weights (Usage: ldwghtsvae <weights filename>)")
         print("traingan - Start training the GAN model (Usage: traingan <path to json file>)")
         print("trainbvae - Start training the Beta-VAE model (Usage: trainbvae <path to json file>)")
         print("incsc - Calculate inception score of the model")
@@ -98,10 +98,9 @@ class AutoDoppelGANgerShell:
                 print("You must load dataset with 'lddst <filepath>' before training model.")
                 return
             self.model_vae.train(self.dataset, training_setup["num_epochs"], training_setup["batch_size"], training_setup["beta"],
-                            training_setup["learning_rate"])
+                            training_setup["learning_rate"], training_setup["weights_filename"])
             if training_setup["save_weights"]:
-                self.model_vae.save_model_weights(
-                        "models/checkpoints/bvae.pth")
+                self.model_vae.save_model_weights(training_setup["weights_filename"])
         except FileNotFoundError as e:
             print(f"Configuration file not found: {e}")
         except json.JSONDecodeError as e:
@@ -171,9 +170,9 @@ class AutoDoppelGANgerShell:
         except IsADirectoryError:
             print(f"Weight must be file: {e}")
 
-    def load_weights_vae(self, path):
+    def load_weights_vae(self, name):
         try:
-            self.model_vae.load_model_weights(path)
+            self.model_vae.load_model_weights(name)
         except FileNotFoundError as e:
             print(f"File not found: {e}")
         except (torch.serialization.pickle.UnpicklingError, EOFError) as e:

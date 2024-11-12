@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -9,12 +10,13 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class BetaVAETrainer:
-    def __init__(self, in_channels, latent_dim, hidden_dims, device, log_dir):
+    def __init__(self, in_channels, latent_dim, hidden_dims, device, log_dir, weights_dir):
         self.model = BetaVAE(in_channels, latent_dim, hidden_dims, device)
         self.device = device
         self.log_dir = log_dir
+        self.weights_dir = weights_dir
 
-    def train(self, dataset, num_epochs, batch_size, beta, learning_rate):
+    def train(self, dataset, num_epochs, batch_size, beta, learning_rate, weights_filename=None):
         self.load_data(dataset, batch_size)
         self.model.initialize_weights()
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
@@ -31,6 +33,9 @@ class BetaVAETrainer:
                 if batch_idx % 100 == 0:
                     self.print_training_stats(num_epochs, epoch, batch_idx,
                                               len(self.loaded_data), total_loss, reconstruction_loss, kl_divergence.mean())
+            if weights_filename and epoch % 20 == 0:
+                os.remove(self.weights_dir+weights_filename+'_'+str(max(0, epoch-20))+'.pth')
+                self.save_model_weights(weights_filename+'_'+str(epoch))
 
     def load_data(self, dataset, batch_size):
         self.loaded_data = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -84,11 +89,11 @@ class BetaVAETrainer:
         fixed_noise = torch.randn(32, self.noise_dim, 1, 1).to(self.device)
         return fixed_noise
 
-    def save_model_weights(self, path):
-        torch.save(self.model.state_dict(), path)
+    def save_model_weights(self, name):
+        torch.save(self.model.state_dict(), self.weights_dir+name+'.pth')
 
-    def load_model_weights(self, path):
-        self.model.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
+    def load_model_weights(self, name):
+        self.model.load_state_dict(torch.load(self.weights_dir+name, map_location=torch.device("cpu")))
 
     def tensor_board_grid(self, writer_real, writer_fake, real, step):
         self.model.eval()
